@@ -1,0 +1,22 @@
+# Environment
+.env
+
+# Go
+bin/
+tmp/
+
+# KV store data
+data/
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
