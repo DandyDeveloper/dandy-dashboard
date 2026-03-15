@@ -10,12 +10,15 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./cmd/server
 
 # Stage 2 — Runtime
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata \
+ && addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=builder /server .
+RUN chown app:app /app/server
 
 # /data is where dashboard.db lives when using the embedded bolt backend.
 VOLUME ["/data"]
 
+USER app
 EXPOSE 8080
 ENTRYPOINT ["/app/server"]

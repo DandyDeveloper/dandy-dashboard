@@ -1,10 +1,9 @@
 <script lang="ts">
   import { widgetRegistry } from './widgets/registry'
-  import WidgetCard from './components/WidgetCard.svelte'
+  import DashboardGrid from './components/DashboardGrid.svelte'
 </script>
 
 <div class="min-h-screen bg-surface-0">
-  <!-- Header -->
   <header class="border-b border-white/[0.06] bg-surface-1/50 backdrop-blur-md sticky top-0 z-10">
     <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -27,12 +26,6 @@
 
   <!-- Widget grid -->
   <main class="max-w-7xl mx-auto px-6 py-8">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 auto-rows-min">
-      {#each widgetRegistry as descriptor (descriptor.id)}
-        <WidgetCard widget={descriptor}>
-          <descriptor.component />
-        </WidgetCard>
-      {/each}
-    </div>
+    <DashboardGrid widgets={widgetRegistry} />
   </main>
 </div>

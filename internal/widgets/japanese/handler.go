@@ -3,7 +3,7 @@ package japanese
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/dandydeveloper/dandy-dashboard/internal/httputil"
 )
 
 // Handler handles HTTP requests for the Japanese widget.
@@ -16,10 +16,11 @@ func NewHandler(svc *Service) *Handler {
 }
 
 // WordOfDay handles GET /api/widgets/japanese/word-of-day
-func (h *Handler) WordOfDay(c echo.Context) error {
+func (h *Handler) WordOfDay(w http.ResponseWriter, r *http.Request) {
 	entry, err := h.svc.GetWordOfDay()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadGateway, "failed to fetch word: "+err.Error())
+		httputil.WriteError(w, http.StatusBadGateway, "word service unavailable")
+		return
 	}
-	return c.JSON(http.StatusOK, entry)
+	httputil.WriteJSON(w, http.StatusOK, entry)
 }

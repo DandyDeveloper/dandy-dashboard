@@ -2,9 +2,9 @@ package japanese
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/dandydeveloper/dandy-dashboard/internal/store"
-	"github.com/labstack/echo/v4"
 )
 
 // Widget implements widget.Widget for the Japanese word of the day module.
@@ -22,6 +22,6 @@ func New(s store.Store, wkToken string) (*Widget, error) {
 
 func (w *Widget) Slug() string { return "japanese" }
 
-func (w *Widget) RegisterRoutes(g *echo.Group) {
-	g.GET("/word-of-day", w.handler.WordOfDay)
+func (w *Widget) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /word-of-day", w.handler.WordOfDay)
 }

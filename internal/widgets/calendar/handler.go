@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
+	"github.com/dandydeveloper/dandy-dashboard/internal/httputil"
 )
 
 // Handler handles HTTP requests for the Calendar widget.
@@ -17,20 +17,19 @@ func NewHandler(svc *Service) *Handler {
 }
 
 // Events handles GET /api/widgets/calendar/events?days=7
-func (h *Handler) Events(c echo.Context) error {
+func (h *Handler) Events(w http.ResponseWriter, r *http.Request) {
 	days := 7
-	if d := c.QueryParam("days"); d != "" {
-		if n, err := strconv.Atoi(d); err == nil {
+	if d := r.URL.Query().Get("days"); d != "" {
+		if n, err := strconv.Atoi(d); err == nil && n >= 1 && n <= 90 {
 			days = n
 		}
 	}
 
 	events, err := h.svc.GetUpcomingEvents(days)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadGateway, "failed to fetch events: "+err.Error())
+		httputil.WriteError(w, http.StatusBadGateway, "calendar service unavailable")
+		return
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"events": events,
-	})
+	httputil.WriteJSON(w, http.StatusOK, map[string]any{"events": events})
 }

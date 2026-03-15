@@ -28,7 +28,7 @@
   }
 </script>
 
-<div class="widget-card flex flex-col {sizeClasses[widget.defaultSize]}">
+<div class="widget-card flex flex-col h-full {sizeClasses[widget.defaultSize]}">
   <div class="widget-header">
     <div class="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center text-accent">
       <Icon size={15} />

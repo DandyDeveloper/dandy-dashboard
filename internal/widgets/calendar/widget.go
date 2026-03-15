@@ -2,8 +2,7 @@ package calendar
 
 import (
 	"fmt"
-
-	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 // Widget implements widget.Widget for the Google Calendar module.
@@ -21,6 +20,6 @@ func New(credentialsJSON, calendarID string) (*Widget, error) {
 
 func (w *Widget) Slug() string { return "calendar" }
 
-func (w *Widget) RegisterRoutes(g *echo.Group) {
-	g.GET("/events", w.handler.Events)
+func (w *Widget) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /events", w.handler.Events)
 }

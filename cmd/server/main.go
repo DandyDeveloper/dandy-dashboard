@@ -2,21 +2,24 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/dandydeveloper/dandy-dashboard/internal/config"
+	"github.com/dandydeveloper/dandy-dashboard/internal/httputil"
+	"github.com/dandydeveloper/dandy-dashboard/internal/middleware"
 	"github.com/dandydeveloper/dandy-dashboard/internal/store"
 	"github.com/dandydeveloper/dandy-dashboard/internal/widget"
 	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/calendar"
 	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/claude"
 	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/japanese"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)
@@ -25,12 +28,11 @@ func main() {
 	kv := mustOpenStore(cfg)
 	defer kv.Close()
 
-	registry := buildRegistry(cfg, kv)
+	registry := buildRegistry(cfg, kv, logger)
+	srv := buildServer(cfg, registry, logger)
 
-	e := buildServer(cfg, registry)
-
-	log.Printf("Dandy Dashboard running on :%s", cfg.Port)
-	if err := e.Start(":" + cfg.Port); err != nil && err != http.ErrServerClosed {
+	logger.Info("server starting", "port", cfg.Port)
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}
 }
@@ -48,10 +50,10 @@ func mustOpenStore(cfg *config.Config) store.Store {
 	return kv
 }
 
-func buildRegistry(cfg *config.Config, kv store.Store) *widget.Registry {
+func buildRegistry(cfg *config.Config, kv store.Store, logger *slog.Logger) *widget.Registry {
 	registry := &widget.Registry{}
 
-	registry.Register(claude.New(cfg.AnthropicAPIKey))
+	registry.Register(claude.New(cfg.AnthropicAPIKey, logger))
 
 	japaneseWidget, err := japanese.New(kv, cfg.WaniKaniToken)
 	if err != nil {
@@ -68,40 +70,25 @@ func buildRegistry(cfg *config.Config, kv store.Store) *widget.Registry {
 	return registry
 }
 
-func buildServer(cfg *config.Config, registry *widget.Registry) *echo.Echo {
-	e := echo.New()
-	e.HideBanner = true
+func buildServer(cfg *config.Config, registry *widget.Registry, logger *slog.Logger) *http.Server {
+	mux := http.NewServeMux()
 
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: strings.Split(cfg.AllowedOrigins, ","),
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderContentType, "X-Dashboard-Key"},
-	}))
+	registry.Mount(mux)
 
-	if cfg.DashboardKey != "" {
-		e.Use(apiKeyMiddleware(cfg.DashboardKey))
-	}
-
-	registry.Mount(e)
-
-	e.GET("/api/widgets", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]interface{}{"widgets": registry.Slugs()})
+	mux.HandleFunc("GET /api/widgets", func(w http.ResponseWriter, r *http.Request) {
+		httputil.WriteJSON(w, http.StatusOK, map[string]any{"widgets": registry.Slugs()})
 	})
 
-	return e
-}
+	handler := middleware.Chain(mux,
+		middleware.Recover(logger),
+		middleware.RequestID(),
+		middleware.Logger(logger),
+		middleware.CORS(strings.Split(cfg.AllowedOrigins, ",")),
+		middleware.APIKey(cfg.DashboardKey),
+	)
 
-func apiKeyMiddleware(key string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if strings.HasPrefix(c.Request().URL.Path, "/api/") &&
-				c.Request().Header.Get("X-Dashboard-Key") != key {
-				return echo.ErrUnauthorized
-			}
-			return next(c)
-		}
+	return &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: handler,
 	}
 }

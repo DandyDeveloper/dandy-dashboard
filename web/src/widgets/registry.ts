@@ -1,5 +1,4 @@
 import type { WidgetDescriptor } from './types'
-import { claudeWidget } from './claude'
 import { japaneseWidget } from './japanese'
 import { calendarWidget } from './calendar'
 
@@ -8,5 +7,4 @@ import { calendarWidget } from './calendar'
 export const widgetRegistry: WidgetDescriptor[] = [
   japaneseWidget,
   calendarWidget,
-  claudeWidget,
 ]

@@ -177,7 +177,7 @@
     </div>
 
     <div class="flex justify-end mt-4 pt-2 border-t border-white/[0.06]">
-      <button on:click={fetchEvents} class="btn-ghost text-xs flex items-center gap-1.5">
+      <button onclick={fetchEvents} class="btn-ghost text-xs flex items-center gap-1.5">
         <RefreshCw size={12} /> Refresh
       </button>
   </div>
