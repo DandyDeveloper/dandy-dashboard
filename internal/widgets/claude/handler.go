@@ -8,6 +8,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func (h *Handler) writeEvent(w http.ResponseWriter, flusher http.Flusher, event, data string) error {
+	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
+	if flusher != nil {
+		flusher.Flush()
+	}
+	return nil
+}
+
 type Handler struct {
 	svc *Service
 }
@@ -17,7 +25,7 @@ func NewHandler(svc *Service) *Handler {
 }
 
 // Chat handles POST /api/widgets/claude/chat
-// It streams the assistant response as Server-Sent Events.
+// Streams the assistant response as Server-Sent Events.
 func (h *Handler) Chat(c echo.Context) error {
 	var req ChatRequest
 	if err := c.Bind(&req); err != nil {
@@ -25,6 +33,9 @@ func (h *Handler) Chat(c echo.Context) error {
 	}
 	if req.Message == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "message is required")
+	}
+	if req.SessionID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "session_id is required")
 	}
 
 	w := c.Response().Writer
@@ -35,36 +46,34 @@ func (h *Handler) Chat(c echo.Context) error {
 	c.Response().WriteHeader(http.StatusOK)
 
 	textCh, errCh := h.svc.Stream(c.Request().Context(), req)
-
-	flusher, canFlush := w.(http.Flusher)
+	flusher, _ := w.(http.Flusher)
 
 	for {
 		select {
 		case text, ok := <-textCh:
 			if !ok {
-				// Stream finished — send done event.
-				fmt.Fprintf(w, "event: done\ndata: {}\n\n")
-				if canFlush {
-					flusher.Flush()
-				}
-				return nil
+				return h.writeEvent(w, flusher, "done", "{}")
 			}
 			payload, _ := json.Marshal(map[string]string{"text": text})
-			fmt.Fprintf(w, "event: delta\ndata: %s\n\n", payload)
-			if canFlush {
-				flusher.Flush()
-			}
+			h.writeEvent(w, flusher, "delta", string(payload))
 		case err, ok := <-errCh:
 			if ok && err != nil {
 				payload, _ := json.Marshal(map[string]string{"error": err.Error()})
-				fmt.Fprintf(w, "event: error\ndata: %s\n\n", payload)
-				if canFlush {
-					flusher.Flush()
-				}
-				return nil
+				return h.writeEvent(w, flusher, "error", string(payload))
 			}
 		case <-c.Request().Context().Done():
 			return nil
 		}
 	}
+}
+
+// Clear handles DELETE /api/widgets/claude/chat/:session_id
+// Wipes the server-side conversation history for the given session.
+func (h *Handler) Clear(c echo.Context) error {
+	sessionID := c.Param("session_id")
+	if sessionID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "session_id is required")
+	}
+	h.svc.ClearSession(sessionID)
+	return c.NoContent(http.StatusNoContent)
 }

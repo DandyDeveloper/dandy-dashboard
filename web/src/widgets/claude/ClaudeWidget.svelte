@@ -6,6 +6,10 @@
     content: string
   }
 
+  // Stable session ID for the lifetime of this component instance.
+  // The backend uses this to look up and persist conversation history.
+  const sessionId = crypto.randomUUID()
+
   let messages = $state<Message[]>([])
   let input = $state('')
   let isStreaming = $state(false)
@@ -30,8 +34,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          session_id: sessionId,
           message: text,
-          history: messages.slice(0, -2), // exclude the in-flight pair
         }),
       })
 
@@ -87,6 +91,7 @@
     messages = []
     error = null
     input = ''
+    fetch(`/api/widgets/claude/chat/${sessionId}`, { method: 'DELETE' })
   }
 
   function handleKeydown(e: KeyboardEvent) {
