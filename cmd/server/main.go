@@ -15,6 +15,7 @@ import (
 	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/calendar"
 	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/claude"
 	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/japanese"
+	"github.com/dandydeveloper/dandy-dashboard/internal/widgets/tasks"
 )
 
 func main() {
@@ -52,6 +53,8 @@ func mustOpenStore(cfg *config.Config) store.Store {
 
 func buildRegistry(cfg *config.Config, kv store.Store, logger *slog.Logger) *widget.Registry {
 	registry := &widget.Registry{}
+
+	registry.Register(tasks.New(kv))
 
 	registry.Register(claude.New(cfg.AnthropicAPIKey, logger))
 

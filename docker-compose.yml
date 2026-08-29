@@ -10,10 +10,10 @@ services:
       - "8080:8080"
     environment:
       DATA_DIR: /data
-      GOOGLE_CREDENTIALS_JSON: /data/google_credentials.json
+      GOOGLE_CREDENTIALS_JSON: /google_credentials.json
     volumes:
       - dashboard_data:/data
-      - ./data/google_credentials.json:/data/google_credentials.json:ro
+      - ./data/google_credentials.json:/google_credentials.json:ro
     depends_on:
       redis:
         condition: service_healthy

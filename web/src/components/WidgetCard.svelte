@@ -10,9 +10,10 @@
   let { widget, children }: Props = $props()
 
   // Icon mapping by widget id
-  import { Bot, BookOpen, Calendar } from 'lucide-svelte'
+  import { Bot, BookOpen, Calendar, CheckSquare } from 'lucide-svelte'
 
   const iconMap: Record<string, typeof Bot> = {
+    tasks: CheckSquare,
     claude: Bot,
     japanese: BookOpen,
     calendar: Calendar,

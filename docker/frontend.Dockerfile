@@ -13,7 +13,8 @@ FROM nginx:1.29-alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 RUN chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx \
- && chmod -R 755 /usr/share/nginx/html
+ && chmod -R 755 /usr/share/nginx/html \
+ && touch /run/nginx.pid && chown nginx:nginx /run/nginx.pid
 
 USER nginx
 EXPOSE 80
